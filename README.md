@@ -1,4 +1,40 @@
-# talk-microservices-go
+# PoC Service Weaver
+
+Proof of Concept of [Service Weaver](https://serviceweaver.dev/)
+
+## Build
+
+```
+make build
+```
+
+## Run single
+
+```
+make run-single
+```
+
+## Run multi
+
+```
+make run-multi
+```
+
+## Get status
+
+```
+make status
+```
+
+## Show dashboard
+
+```
+make dashboard
+```
+
+## Deploy to cloud
+
+@TODO
 
 ## Using the services
 
