@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -11,7 +10,8 @@ import (
 	"github.com/eminetto/microservices-serviceweaver/auth"
 	"github.com/eminetto/microservices-serviceweaver/feedback"
 	"github.com/eminetto/microservices-serviceweaver/vote"
-	"github.com/google/uuid"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 )
 
 func main() {
@@ -38,91 +38,27 @@ func main() {
 		log.Fatal(err)
 	}
 
-	http.HandleFunc("/auth", func(w http.ResponseWriter, r *http.Request) {
-		var param struct {
-			Email    string `json:"email"`
-			Password string `json:"password"`
-		}
-		err := json.NewDecoder(r.Body).Decode(&param)
-		if err != nil {
-			w.WriteHeader(http.StatusBadGateway)
-			return
-		}
-		err = us.ValidateUser(r.Context(), param.Email, param.Password)
-		if err != nil {
-			w.WriteHeader(http.StatusForbidden)
-			return
-		}
-		var result struct {
-			Token string `json:"token"`
-		}
-		result.Token, err = us.GenerateToken(r.Context(), param.Email)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+	authMiddleware := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			email, err := us.ValidateToken(r.Context(), r.Header.Get("Authorization"))
+			if err != nil {
+				w.WriteHeader(http.StatusForbidden)
+				return
+			}
+			ctx := context.WithValue(r.Context(), "email", email)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
 
-		if err := json.NewEncoder(w).Encode(result); err != nil {
-			w.WriteHeader(http.StatusBadGateway)
-			return
-		}
-		return
+	r := chi.NewRouter()
+	r.Use(middleware.Logger)
+	r.Get("/health", auth.HttpHealth(us))
+	r.Post("/auth", auth.HttpAuth(us))
+	r.Route("/", func(r chi.Router) {
+		r.Use(authMiddleware)
+		r.Post("/feedback", feedback.HttpAuth(fdb))
+		r.Post("/vote", vote.HttpVote(vt))
 	})
 
-	http.HandleFunc("/feedback", func(w http.ResponseWriter, r *http.Request) {
-		var f feedback.Feedback
-		err := json.NewDecoder(r.Body).Decode(&f)
-		if err != nil {
-			w.WriteHeader(http.StatusBadGateway)
-			return
-		}
-		email, err := us.ValidateToken(r.Context(), r.Header.Get("Authorization"))
-		if err != nil {
-			w.WriteHeader(http.StatusForbidden)
-			return
-		}
-		f.Email = email
-		var result struct {
-			ID uuid.UUID `json:"id"`
-		}
-		result.ID, err = fdb.Store(r.Context(), f)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		if err := json.NewEncoder(w).Encode(result); err != nil {
-			w.WriteHeader(http.StatusBadGateway)
-			return
-		}
-		return
-	})
-
-	http.HandleFunc("/vote", func(w http.ResponseWriter, r *http.Request) {
-		var v vote.Vote
-		err := json.NewDecoder(r.Body).Decode(&v)
-		if err != nil {
-			w.WriteHeader(http.StatusBadGateway)
-			return
-		}
-		email, err := us.ValidateToken(r.Context(), r.Header.Get("Authorization"))
-		if err != nil {
-			w.WriteHeader(http.StatusForbidden)
-			return
-		}
-		v.Email = email
-		var result struct {
-			ID uuid.UUID `json:"id"`
-		}
-		result.ID, err = vt.Store(r.Context(), v)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		if err := json.NewEncoder(w).Encode(result); err != nil {
-			w.WriteHeader(http.StatusBadGateway)
-			return
-		}
-		return
-	})
-	http.Serve(lis, nil)
+	http.Serve(lis, r)
 }

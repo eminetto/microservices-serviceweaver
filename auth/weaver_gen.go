@@ -19,7 +19,7 @@ func init() {
 			return authComponent_local_stub{impl: impl.(AuthComponent), tracer: tracer}
 		},
 		ClientStubFn: func(stub codegen.Stub, caller string) any {
-			return authComponent_client_stub{stub: stub, validateUserMetrics: codegen.MethodMetricsFor(codegen.MethodLabels{Caller: caller, Component: "github.com/eminetto/microservices-serviceweaver/auth/AuthComponent", Method: "ValidateUser"}), generateTokenMetrics: codegen.MethodMetricsFor(codegen.MethodLabels{Caller: caller, Component: "github.com/eminetto/microservices-serviceweaver/auth/AuthComponent", Method: "GenerateToken"}), validateTokenMetrics: codegen.MethodMetricsFor(codegen.MethodLabels{Caller: caller, Component: "github.com/eminetto/microservices-serviceweaver/auth/AuthComponent", Method: "ValidateToken"})}
+			return authComponent_client_stub{stub: stub, validateUserMetrics: codegen.MethodMetricsFor(codegen.MethodLabels{Caller: caller, Component: "github.com/eminetto/microservices-serviceweaver/auth/AuthComponent", Method: "ValidateUser"}), generateTokenMetrics: codegen.MethodMetricsFor(codegen.MethodLabels{Caller: caller, Component: "github.com/eminetto/microservices-serviceweaver/auth/AuthComponent", Method: "GenerateToken"}), validateTokenMetrics: codegen.MethodMetricsFor(codegen.MethodLabels{Caller: caller, Component: "github.com/eminetto/microservices-serviceweaver/auth/AuthComponent", Method: "ValidateToken"}), healthMetrics: codegen.MethodMetricsFor(codegen.MethodLabels{Caller: caller, Component: "github.com/eminetto/microservices-serviceweaver/auth/AuthComponent", Method: "Health"})}
 		},
 		ServerStubFn: func(impl any, addLoad func(uint64, float64)) codegen.Server {
 			return authComponent_server_stub{impl: impl.(AuthComponent), addLoad: addLoad}
@@ -85,6 +85,23 @@ func (s authComponent_local_stub) ValidateToken(ctx context.Context, a0 string) 
 	return s.impl.ValidateToken(ctx, a0)
 }
 
+func (s authComponent_local_stub) Health(ctx context.Context) (r0 string, err error) {
+	span := trace.SpanFromContext(ctx)
+	if span.SpanContext().IsValid() {
+		// Create a child span for this method.
+		ctx, span = s.tracer.Start(ctx, "auth.AuthComponent.Health", trace.WithSpanKind(trace.SpanKindInternal))
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+				span.SetStatus(codes.Error, err.Error())
+			}
+			span.End()
+		}()
+	}
+
+	return s.impl.Health(ctx)
+}
+
 // Client stub implementations.
 
 type authComponent_client_stub struct {
@@ -92,6 +109,7 @@ type authComponent_client_stub struct {
 	validateUserMetrics  *codegen.MethodMetrics
 	generateTokenMetrics *codegen.MethodMetrics
 	validateTokenMetrics *codegen.MethodMetrics
+	healthMetrics        *codegen.MethodMetrics
 }
 
 func (s authComponent_client_stub) ValidateUser(ctx context.Context, a0 string, a1 string) (err error) {
@@ -137,7 +155,7 @@ func (s authComponent_client_stub) ValidateUser(ctx context.Context, a0 string, 
 	// Call the remote method.
 	s.validateUserMetrics.BytesRequest.Put(float64(len(enc.Data())))
 	var results []byte
-	results, err = s.stub.Run(ctx, 2, enc.Data(), shardKey)
+	results, err = s.stub.Run(ctx, 3, enc.Data(), shardKey)
 	if err != nil {
 		return
 	}
@@ -244,11 +262,57 @@ func (s authComponent_client_stub) ValidateToken(ctx context.Context, a0 string)
 	// Call the remote method.
 	s.validateTokenMetrics.BytesRequest.Put(float64(len(enc.Data())))
 	var results []byte
-	results, err = s.stub.Run(ctx, 1, enc.Data(), shardKey)
+	results, err = s.stub.Run(ctx, 2, enc.Data(), shardKey)
 	if err != nil {
 		return
 	}
 	s.validateTokenMetrics.BytesReply.Put(float64(len(results)))
+
+	// Decode the results.
+	dec := codegen.NewDecoder(results)
+	r0 = dec.String()
+	err = dec.Error()
+	return
+}
+
+func (s authComponent_client_stub) Health(ctx context.Context) (r0 string, err error) {
+	// Update metrics.
+	start := time.Now()
+	s.healthMetrics.Count.Add(1)
+
+	span := trace.SpanFromContext(ctx)
+	if span.SpanContext().IsValid() {
+		// Create a child span for this method.
+		ctx, span = s.stub.Tracer().Start(ctx, "auth.AuthComponent.Health", trace.WithSpanKind(trace.SpanKindClient))
+	}
+
+	defer func() {
+		// Catch and return any panics detected during encoding/decoding/rpc.
+		if err == nil {
+			err = codegen.CatchPanics(recover())
+		}
+		err = s.stub.WrapError(err)
+
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+			s.healthMetrics.ErrorCount.Add(1)
+		}
+		span.End()
+
+		s.healthMetrics.Latency.Put(float64(time.Since(start).Microseconds()))
+	}()
+
+	var shardKey uint64
+
+	// Call the remote method.
+	s.healthMetrics.BytesRequest.Put(0)
+	var results []byte
+	results, err = s.stub.Run(ctx, 1, nil, shardKey)
+	if err != nil {
+		return
+	}
+	s.healthMetrics.BytesReply.Put(float64(len(results)))
 
 	// Decode the results.
 	dec := codegen.NewDecoder(results)
@@ -273,6 +337,8 @@ func (s authComponent_server_stub) GetStubFn(method string) func(ctx context.Con
 		return s.generateToken
 	case "ValidateToken":
 		return s.validateToken
+	case "Health":
+		return s.health
 	default:
 		return nil
 	}
@@ -346,6 +412,26 @@ func (s authComponent_server_stub) validateToken(ctx context.Context, args []byt
 	// user code: fix this.
 	// Call the local method.
 	r0, appErr := s.impl.ValidateToken(ctx, a0)
+
+	// Encode the results.
+	enc := codegen.NewEncoder()
+	enc.String(r0)
+	enc.Error(appErr)
+	return enc.Data(), nil
+}
+
+func (s authComponent_server_stub) health(ctx context.Context, args []byte) (res []byte, err error) {
+	// Catch and return any panics detected during encoding/decoding/rpc.
+	defer func() {
+		if err == nil {
+			err = codegen.CatchPanics(recover())
+		}
+	}()
+
+	// TODO(rgrandl): The deferred function above will recover from panics in the
+	// user code: fix this.
+	// Call the local method.
+	r0, appErr := s.impl.Health(ctx)
 
 	// Encode the results.
 	enc := codegen.NewEncoder()

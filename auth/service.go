@@ -12,10 +12,15 @@ type AuthComponent interface {
 	ValidateUser(ctx context.Context, email, password string) error
 	GenerateToken(ctx context.Context, email string) (string, error)
 	ValidateToken(ctx context.Context, token string) (string, error)
+	Health(ctx context.Context) (string, error)
 }
 
 type Service struct {
 	weaver.Implements[AuthComponent]
+}
+
+func (s *Service) Health(ctx context.Context) (string, error) {
+	return "ok", nil
 }
 
 func (s *Service) ValidateUser(ctx context.Context, email, password string) error {
