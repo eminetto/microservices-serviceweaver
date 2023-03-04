@@ -34,7 +34,13 @@ make dashboard
 
 ## Deploy to cloud
 
-@TODO
+You must follow [this documentation](https://serviceweaver.dev/docs.html#gke) to run this option.
+
+```
+gke-run-multi
+```
+
+
 
 ## Using the services
 
