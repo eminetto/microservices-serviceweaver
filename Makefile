@@ -21,3 +21,18 @@ status:
 
 dashboard:
 	weaver multi dashboard
+
+gke-run-multi: build
+	weaver gke deploy weaver.toml
+
+gke-status:
+	weaver gke status
+
+gke-dashboard:
+	weaver gke dashboard
+
+gke-local-run-multi: build
+	weaver gke-local deploy weaver.toml
+
+gke-local-status:
+	weaver gke-local status	

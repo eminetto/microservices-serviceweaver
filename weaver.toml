@@ -1,2 +1,9 @@
 [serviceweaver]
 binary = "./bin/microservices"
+
+[gke]
+project = "microservices-serviceweaver"
+regions = ["us-east1"]
+public_listener = [
+  {name = "microservices-serviceweaver", hostname = "minetto.dev"},
+]
