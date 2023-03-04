@@ -37,7 +37,7 @@ make dashboard
 You must follow [this documentation](https://serviceweaver.dev/docs.html#gke) to run this option.
 
 ```
-gke-run-multi
+make gke-run-multi
 ```
 
 
