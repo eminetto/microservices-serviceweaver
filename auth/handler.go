@@ -5,14 +5,16 @@ import (
 	"net/http"
 )
 
-func HttpHealth(us AuthComponent) http.HandlerFunc {
+// HealthHandler handle the health request
+func HealthHandler(us Auth) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		msg, _ := us.Health(r.Context())
 		w.Write([]byte(msg))
 	})
 }
 
-func HttpAuth(us AuthComponent) http.HandlerFunc {
+// Handler handle the auth request
+func Handler(us Auth) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var param struct {
 			Email    string `json:"email"`

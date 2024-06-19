@@ -8,22 +8,23 @@ import (
 	"github.com/eminetto/microservices-serviceweaver/auth/security"
 )
 
-type AuthComponent interface {
+// Auth is the interface that provides auth methods.
+type Auth interface {
 	ValidateUser(ctx context.Context, email, password string) error
 	GenerateToken(ctx context.Context, email string) (string, error)
 	ValidateToken(ctx context.Context, token string) (string, error)
 	Health(ctx context.Context) (string, error)
 }
 
-type Service struct {
-	weaver.Implements[AuthComponent]
+type auth struct {
+	weaver.Implements[Auth]
 }
 
-func (s *Service) Health(ctx context.Context) (string, error) {
+func (s *auth) Health(ctx context.Context) (string, error) {
 	return "ok", nil
 }
 
-func (s *Service) ValidateUser(ctx context.Context, email, password string) error {
+func (s *auth) ValidateUser(ctx context.Context, email, password string) error {
 	//@TODO create validation rules, using databases or something else
 	if email == "eminetto@gmail.com" && password != "1234567" {
 		return fmt.Errorf("Invalid user")
@@ -31,11 +32,11 @@ func (s *Service) ValidateUser(ctx context.Context, email, password string) erro
 	return nil
 }
 
-func (s *Service) GenerateToken(ctx context.Context, email string) (string, error) {
+func (s *auth) GenerateToken(ctx context.Context, email string) (string, error) {
 	return security.NewToken(email)
 }
 
-func (s *Service) ValidateToken(ctx context.Context, token string) (string, error) {
+func (s *auth) ValidateToken(ctx context.Context, token string) (string, error) {
 	t, err := security.ParseToken(token)
 	if err != nil {
 		return "", err

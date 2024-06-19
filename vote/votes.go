@@ -7,15 +7,16 @@ import (
 	"github.com/google/uuid"
 )
 
-type VoteComponent interface {
-	Store(ctx context.Context, v Vote) (uuid.UUID, error)
+// Writer is the interface that provides write methods.
+type Writer interface {
+	Write(ctx context.Context, v *Vote) (uuid.UUID, error)
 }
 
-type Service struct {
-	weaver.Implements[VoteComponent]
+type writer struct {
+	weaver.Implements[Writer]
 }
 
-func (s *Service) Store(ctx context.Context, v Vote) (uuid.UUID, error) {
+func (s *writer) Write(ctx context.Context, v *Vote) (uuid.UUID, error) {
 	//@TODO create store rules, using databases or something else
 	return uuid.New(), nil
 }

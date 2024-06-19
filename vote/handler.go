@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func HttpVote(vt VoteComponent) http.HandlerFunc {
+func WriterHandler(vw Writer) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var v Vote
 		err := json.NewDecoder(r.Body).Decode(&v)
@@ -19,7 +19,7 @@ func HttpVote(vt VoteComponent) http.HandlerFunc {
 		var result struct {
 			ID uuid.UUID `json:"id"`
 		}
-		result.ID, err = vt.Store(r.Context(), v)
+		result.ID, err = vw.Write(r.Context(), &v)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return

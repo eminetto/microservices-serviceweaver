@@ -11,7 +11,7 @@ build: generate
 	go build -o bin/microservices
 
 run-single: build
-	go run .
+	SERVICEWEAVER_CONFIG=weaver.toml go run .
 
 run-multi: build 
 	weaver multi deploy weaver.toml

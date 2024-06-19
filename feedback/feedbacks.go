@@ -7,15 +7,16 @@ import (
 	"github.com/google/uuid"
 )
 
-type FeedbackComponent interface {
-	Store(ctx context.Context, f Feedback) (uuid.UUID, error)
+// Writer is the interface that provides feedback methods.
+type Writer interface {
+	Write(ctx context.Context, f *Feedback) (uuid.UUID, error)
 }
 
-type Service struct {
-	weaver.Implements[FeedbackComponent]
+type writer struct {
+	weaver.Implements[Writer]
 }
 
-func (s *Service) Store(ctx context.Context, f Feedback) (uuid.UUID, error) {
+func (s *writer) Write(ctx context.Context, f *Feedback) (uuid.UUID, error) {
 	//@TODO create store rules, using databases or something else
 	return uuid.New(), nil
 }

@@ -10,33 +10,31 @@ import (
 	"github.com/eminetto/microservices-serviceweaver/auth"
 	"github.com/eminetto/microservices-serviceweaver/feedback"
 	"github.com/eminetto/microservices-serviceweaver/vote"
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/middleware"
 )
 
 func main() {
-	root := weaver.Init(context.Background())
-	opts := weaver.ListenerOptions{LocalAddress: "localhost:12345"}
-	lis, err := root.Listener("talk-manager", opts)
-	if err != nil {
+	if err := weaver.Run(context.Background(), serve); err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("listener available on %v\n", lis)
+}
 
-	fdb, err := weaver.Get[feedback.FeedbackComponent](root)
-	if err != nil {
-		log.Fatal(err)
-	}
+// app is the main component of the application. weaver.Run creates
+// it and passes it to serve.
+type app struct {
+	weaver.Implements[weaver.Main]
+	feedback weaver.Ref[feedback.Writer]
+	vote     weaver.Ref[vote.Writer]
+	auth     weaver.Ref[auth.Auth]
+	api      weaver.Listener
+}
 
-	vt, err := weaver.Get[vote.VoteComponent](root)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	us, err := weaver.Get[auth.AuthComponent](root)
-	if err != nil {
-		log.Fatal(err)
-	}
+// serve is called by weaver.Run and contains the body of the application.
+func serve(ctx context.Context, app *app) error {
+	var fdb feedback.Writer = app.feedback.Get()
+	var vt vote.Writer = app.vote.Get()
+	var us auth.Auth = app.auth.Get()
 
 	authMiddleware := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -52,13 +50,15 @@ func main() {
 
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
-	r.Get("/health", auth.HttpHealth(us))
-	r.Post("/auth", auth.HttpAuth(us))
+	r.Get("/health", auth.HealthHandler(us))
+	r.Post("/auth", auth.Handler(us))
 	r.Route("/", func(r chi.Router) {
 		r.Use(authMiddleware)
-		r.Post("/feedback", feedback.HttpAuth(fdb))
-		r.Post("/vote", vote.HttpVote(vt))
+		r.Post("/feedback", feedback.WriteHandler(fdb))
+		r.Post("/vote", vote.WriterHandler(vt))
 	})
+	fmt.Printf("listener available on %v\n", app.api)
 
-	http.Serve(lis, r)
+	http.Serve(app.api, r)
+	return nil
 }
