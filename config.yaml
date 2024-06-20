@@ -1,0 +1,6 @@
+appConfig: weaver.toml
+repo: docker.io/eminetto
+
+listeners:
+  - name: api
+    public: true

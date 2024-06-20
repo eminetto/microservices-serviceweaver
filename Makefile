@@ -36,3 +36,7 @@ gke-local-run-multi: build
 
 gke-local-status:
 	weaver gke-local status	
+
+run-kube: 
+	GOOS=linux GOARCH=arm64 go build -o bin/microservices
+	weaver kube deploy config.yaml
