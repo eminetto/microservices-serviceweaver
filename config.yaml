@@ -1,5 +1,6 @@
 appConfig: weaver.toml
 repo: docker.io/eminetto
+namespace: servicewaver-example
 
 listeners:
   - name: api

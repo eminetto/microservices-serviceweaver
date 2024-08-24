@@ -1,5 +1,5 @@
 #!/bin/bash
-export IP=$(kubectl get service -l serviceweaver/app=microservices -o jsonpath="{.items[0].status.loadBalancer.ingress[0].ip}")
+export IP=$(kubectl -n servicewaver-example get service -l serviceweaver/app=microservices -o jsonpath="{.items[0].status.loadBalancer.ingress[0].ip}")
 
 export TOKEN=$(curl -s -X "POST" "http://$IP/auth" \
      -H 'Accept: application/json' \

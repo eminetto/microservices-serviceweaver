@@ -27,7 +27,7 @@ type app struct {
 	feedback weaver.Ref[feedback.Writer]
 	vote     weaver.Ref[vote.Writer]
 	auth     weaver.Ref[auth.Auth]
-	api      weaver.Listener
+	api      weaver.Listener `weaver:"api"`
 }
 
 // serve is called by weaver.Run and contains the body of the application.
